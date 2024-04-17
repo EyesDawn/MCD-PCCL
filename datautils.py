@@ -8,10 +8,10 @@ import pickle
 from utils import pkl_load, pad_nan_to_target
 from scipy.io.arff import loadarff
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
+import torch
 def load_UCR(dataset):
-    train_file = os.path.join('datasets/UCR', dataset, dataset + "_TRAIN.tsv")
-    test_file = os.path.join('datasets/UCR', dataset, dataset + "_TEST.tsv")
+    train_file = os.path.join('/workspace/ts_data/UCRArchive_2018/', dataset, dataset + "_TRAIN.tsv")
+    test_file = os.path.join('/workspace/ts_data/UCRArchive_2018/', dataset, dataset + "_TEST.tsv")
     train_df = pd.read_csv(train_file, sep='\t', header=None)
     test_df = pd.read_csv(test_file, sep='\t', header=None)
     train_array = np.array(train_df)
@@ -76,9 +76,9 @@ def load_UCR(dataset):
     return train[..., np.newaxis], train_labels, test[..., np.newaxis], test_labels
 
 
-def load_UEA(dataset):
-    train_data = loadarff(f'datasets/UEA/{dataset}/{dataset}_TRAIN.arff')[0]
-    test_data = loadarff(f'datasets/UEA/{dataset}/{dataset}_TEST.arff')[0]
+def load_UEA2(dataset):
+    train_data = loadarff(f'/workspace/ts_data/Multivariate_arff/{dataset}/{dataset}_TRAIN.arff')[0]
+    test_data = loadarff(f'/workspace/ts_data/Multivariate_arff/{dataset}/{dataset}_TEST.arff')[0]
     
     def extract_data(data):
         res_data = []
@@ -102,8 +102,114 @@ def load_UEA(dataset):
     transform = { k : i for i, k in enumerate(labels)}
     train_y = np.vectorize(transform.get)(train_y)
     test_y = np.vectorize(transform.get)(test_y)
+    print(train_X.shape)
     return train_X, train_y, test_X, test_y
+
+def load_HEI(dataset,mode="train",dataset_root="/workspace/CA-TCC/data"):
+    # train_X, train_y, test_X, test_y = load_HAR()
+    # train_X_fft, _, test_X_fft, _ = load_HAR_fft()
+    # train_X_sea, _, test_X_sea, _ = load_HAR_seasonal()
+    print(mode)
+    data_path = f"{dataset_root}/{dataset}/"
+    print(data_path)
+    if mode!="train":
+        train_ = torch.load(data_path + f"train_{mode}.pt")
+    else:
+        train_ = torch.load(data_path + "train.pt")
+    # val_ = torch.load(data_path + "val.pt")
     
+    train_X = train_['samples']
+    # train = torch.transpose(train, 1, 2)
+    train_y = train_['labels']
+    if len(train_X.shape)==2:
+        train_X = train_X.unsqueeze(1)
+    train_X = torch.transpose(train_X,2,1)
+    #train_X = train_X[:, ::3, :]
+    print(train_X.shape)
+
+    test_ = torch.load(data_path + "test.pt")
+    test = test_['samples']
+    if len(test.shape)==2:
+        test = test.unsqueeze(1)
+    test_X = torch.transpose(test, 1, 2)
+    #test_X = test_X[:, ::3, :]
+    test_y = test_['labels']
+
+    
+    print(test_X.shape)
+    scaler = StandardScaler()
+    scaler.fit(train_X.reshape(-1, train_X.shape[-1]))
+    train_X = scaler.transform(train_X.reshape(-1, train_X.shape[-1])).reshape(train_X.shape)
+    test_X = scaler.transform(test_X.reshape(-1, test_X.shape[-1])).reshape(test_X.shape)
+
+    labels = np.unique(train_y)
+    transform = {k: i for i, k in enumerate(labels)}
+    train_y = np.vectorize(transform.get)(train_y)
+    test_y = np.vectorize(transform.get)(test_y)
+
+    print("train_X.shape",train_X.shape)
+    print("test_X.shape",test_X.shape)
+
+    return train_X, train_y, test_X, test_y
+ 
+def load_HEI_fft(dataset,mode="train"):
+    # train_X, train_y, test_X, test_y = load_HAR()
+    # train_X_fft, _, test_X_fft, _ = load_HAR_fft()
+    # train_X_sea, _, test_X_sea, _ = load_HAR_seasonal()
+    print(mode)
+    data_path = f"/workspace/CA-TCC/data/{dataset}/"
+        
+    print(data_path)
+    if mode!="train":
+        train_ = torch.load(data_path + f"train_{mode}.pt")
+    else:
+        train_ = torch.load(data_path + "train.pt")
+    # val_ = torch.load(data_path + "val.pt")
+    
+    train_X = train_['samples']
+    # train = torch.transpose(train, 1, 2)
+    train_y = train_['labels']
+    if len(train_X.shape)==2:
+        train_X = train_X.unsqueeze(1)
+    train_X = torch.transpose(train_X,2,1)
+    print(train_X.shape)
+
+    test_ = torch.load(data_path + "test.pt")
+    test_X = test_['samples']
+    if len(test_X.shape)==2:
+        test_X = test_X.unsqueeze(1)
+    test_X = torch.transpose(test_X, 1, 2)
+    test_y = test_['labels']
+
+    # scaler = StandardScaler()
+    # scaler.fit(train_X.reshape(-1, train_X.shape[-1]))
+    # train_X = scaler.transform(train_X.reshape(-1, train_X.shape[-1])).reshape(train_X.shape)
+    # test_X = scaler.transform(test_X.reshape(-1, test_X.shape[-1])).reshape(test_X.shape)
+
+    labels = np.unique(train_y)
+    transform = {k: i for i, k in enumerate(labels)}
+    train_y = np.vectorize(transform.get)(train_y)
+    test_y = np.vectorize(transform.get)(test_y)
+        # 频域
+    print(type(train_X))
+    print(train_X.shape)
+    # train_X = torch.from_numpy(train_X)
+    # test_X = torch.from_numpy(test_X)
+    train_X_fft = torch.fft.fft(train_X.transpose(1, 2)).abs()
+    test_X_fft = torch.fft.fft(test_X.transpose(1, 2)).abs()
+    train_X_fft = train_X_fft.transpose(1, 2)
+    test_X_fft = test_X_fft.transpose(1, 2)
+
+    scaler = StandardScaler()
+    scaler.fit(train_X_fft.reshape(-1, train_X_fft.shape[-1]))
+    train_X_fft = scaler.transform(train_X_fft.reshape(-1, train_X_fft.shape[-1])).reshape(train_X_fft.shape)
+    test_X_fft = scaler.transform(test_X_fft.reshape(-1, test_X_fft.shape[-1])).reshape(test_X_fft.shape)
+
+    print("train_X.shape",train_X.shape)
+    print("train_X_fft.shape",train_X.shape)
+    return [train_X, train_X_fft], train_y, [test_X,test_X_fft], test_y
+ 
+
     
 def load_forecast_npy(name, univar=False):
     data = np.load(f'datasets/{name}.npy')    
@@ -196,3 +302,141 @@ def gen_ano_train_data(all_train_data):
         pretrain_data.append(train_data)
     pretrain_data = np.expand_dims(np.stack(pretrain_data), 2)
     return pretrain_data
+
+from torch.utils.data import Dataset
+
+class TwoViewloader(Dataset):
+    """
+    Return the dataitem and corresponding index
+    The batch of the loader: A list
+        - [B, L, 1] (For univariate time series)
+        - [B]: The corresponding index in the train_set tensors
+
+    """
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, index):
+        sample_tem = self.data[0][index]
+        sample_fre = self.data[1][index]
+
+
+        return index, sample_tem, sample_fre
+
+    def __len__(self):
+        return len(self.data[0])
+
+class ThreeViewloader(Dataset):
+    """
+    Return the dataitem and corresponding index
+    The batch of the loader: A list
+        - [B, L, 1] (For univariate time series)
+        - [B]: The corresponding index in the train_set tensors
+
+    """
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, index):
+        sample_tem = self.data[0][index]
+        sample_fre = self.data[1][index]
+        sample_sea = self.data[2][index]
+
+
+        return index, sample_tem, sample_fre,sample_sea
+
+    def __len__(self):
+        return len(self.data[0])
+
+
+def load_tri_view(dataset="ISRUC",mode="train",decompose_mode="seasonal"):
+    # train_X, train_y, test_X, test_y = load_HAR()
+    # train_X_fft, _, test_X_fft, _ = load_HAR_fft()
+    # train_X_sea, _, test_X_sea, _ = load_HAR_seasonal()
+    print(mode)
+    data_path = f"/workspace/CA-TCC/data/{dataset}/"
+        
+    print(data_path)
+    if mode!="train":
+        train_ = torch.load(data_path + f"train_{mode}.pt")
+    else:
+        train_ = torch.load(data_path + "train.pt")
+    # val_ = torch.load(data_path + "val.pt")
+    
+    train_X = train_['samples']
+    # train = torch.transpose(train, 1, 2)
+    train_y = train_['labels']
+    train_X = torch.transpose(train_X,2,1)
+    print(train_X.shape)
+
+    test_ = torch.load(data_path + "test.pt")
+    test = test_['samples']
+    test_X = torch.transpose(test, 1, 2)
+    test_y = test_['labels']
+
+    if decompose_mode == "seasonal":
+        if mode!="train":
+            train_sea_ = torch.load(data_path + f"train_{mode}_sea.pt")
+        else:
+            train_sea_ = torch.load(data_path + "train_sea.pt")
+        test_sea_ = torch.load(data_path + "test_sea.pt")
+        train_X_sea = train_sea_['samples']
+        test_X_sea = test_sea_['samples']
+        
+        # if mode!="train":
+        #     train_trend_ = torch.load(data_path + f"train_{mode}_trend.pt")
+        # else:
+        #     train_trend_ = torch.load(data_path + "train_trend.pt")
+        # test_trend_ = torch.load(data_path + "test_trend.pt")
+        # train_X_trend = train_trend_['samples']
+        # test_X_trend = test_trend_['samples']
+
+        # if mode!="train":
+        #     train_resid_ = torch.load(data_path + f"train_{mode}_resid.pt")
+        # else:
+        #     train_resid_ = torch.load(data_path + "train_resid.pt")
+        # test_resid_ = torch.load(data_path + "test_resid.pt")
+        # train_X_resid = train_resid_['samples']
+        # test_X_resid = test_resid_['samples']
+
+    elif decompose_mode == "trend":
+        if mode!="train":
+            train_trend_ = torch.load(data_path + f"train_{mode}_trend.pt")
+        else:
+            train_trend_ = torch.load(data_path + "train_trend.pt")
+        test_trend_ = torch.load(data_path + "test_trend.pt")
+        train_X_sea = train_trend_['samples']
+        test_X_sea = test_trend_['samples']
+    elif decompose_mode == "resid":
+        if mode!="train":
+            train_resid_ = torch.load(data_path + f"train_{mode}_resid.pt")
+        else:
+            train_resid_ = torch.load(data_path + "train_resid.pt")
+        test_resid_ = torch.load(data_path + "test_resid.pt")
+        train_X_sea = train_resid_['samples']
+        test_X_sea = test_resid_['samples']
+    
+    labels = np.unique(train_y)
+    transform = {k: i for i, k in enumerate(labels)}
+    train_y = np.vectorize(transform.get)(train_y)
+    test_y = np.vectorize(transform.get)(test_y)
+        # 频域
+    print(type(train_X))
+    print(train_X.shape)
+    # train_X = torch.from_numpy(train_X)
+    # test_X = torch.from_numpy(test_X)
+    train_X_fft = torch.fft.fft(train_X.transpose(1, 2)).abs()
+    test_X_fft = torch.fft.fft(test_X.transpose(1, 2)).abs()
+    train_X_fft = train_X_fft.transpose(1, 2)
+    test_X_fft = test_X_fft.transpose(1, 2)
+
+    scaler = StandardScaler()
+    scaler.fit(train_X_fft.reshape(-1, train_X_fft.shape[-1]))
+    train_X_fft = scaler.transform(train_X_fft.reshape(-1, train_X_fft.shape[-1])).reshape(train_X_fft.shape)
+    test_X_fft = scaler.transform(test_X_fft.reshape(-1, test_X_fft.shape[-1])).reshape(test_X_fft.shape)
+
+    print("train_X.shape",train_X.shape)
+    print("train_X_fft.shape",train_X.shape)
+    print("train_X_sea.shape",train_X_sea.shape)
+    #return [train_X,train_X_sea, train_X_fft], train_y, [test_X,test_X_sea,test_X_fft], test_y
+    return [train_X,train_X_sea, train_X_fft], train_y, [test_X,test_X_sea,test_X_fft], test_y

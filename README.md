@@ -92,3 +92,6 @@ test_repr = model.encode(
 )  # n_instances x n_timestamps x output_dims
 # (The timestamp t's representation vector is computed using the observations located in [t-50, t])
 ```
+```
+python trainbk.py HAR semi --loader HAR --data_perc 1perc   --gpu 1 --eval
+```

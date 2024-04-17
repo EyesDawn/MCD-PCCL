@@ -1,1 +1,1 @@
-from .encoder import TSEncoder
+from .encoder import TSEncoder,DualTSEncoder
