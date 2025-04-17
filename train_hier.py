@@ -6,7 +6,7 @@ import sys
 import time
 import datetime
 from datetime import datetime as timesnow
-from ts2vec_dual import TS2Vec
+from ts2vec_hier import TS2Vec
 import tasks
 import datautils
 from utils import init_dl_program, name_with_datetime, pkl_save, data_dropout
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--repr-dims', type=int, default=320, help='The representation dimension (defaults to 320)')
     parser.add_argument('--max-train-length', type=int, default=3000, help='For sequence with a length greater than <max_train_length>, it would be cropped into some sequences, each of which has a length less than <max_train_length> (defaults to 3000)')
     parser.add_argument('--iters', type=int, default=None, help='The number of iterations')
-    parser.add_argument('--epochs', type=int, default=40, help='The number of epochs')
+    parser.add_argument('--epochs', type=int, default=None, help='The number of epochs')
     parser.add_argument('--save-every', type=int, default=None, help='Save the checkpoint every <save_every> iterations/epochs')
     parser.add_argument('--seed', type=int, default=None, help='The random seed')
     parser.add_argument('--max-threads', type=int, default=None, help='The maximum allowed number of threads used by this process')
@@ -67,14 +67,12 @@ if __name__ == '__main__':
     parser.add_argument('--data_perc', type=str, default="train", help='The ratio of missing observations (defaults to 0)')
     parser.add_argument('--model_path', type=str, default=None, help='The ratio of missing observations (defaults to 0)')
     parser.add_argument('--ma_gamma', default=0.9999, type=float, help='The moving average parameter for prototype updating')
-    parser.add_argument('--ma_alpha', default=0.1, type=float, help='The moving average parameter for prototype updating')
-    parser.add_argument('--ma_beta', default=0.1, type=float, help='The moving average parameter for prototype updating')
     parser.add_argument('--temperature', default=0.1, type=float, help='softmax temperature of InfoNCE')
     args = parser.parse_args()
         
     device = init_dl_program(args.gpu, seed=args.seed, max_threads=args.max_threads)
 
-    run_dir = 'Civil/ts_dual_bi/' + args.dataset + '/' + name_with_datetime(args.run_name+'_'+args.data_perc)
+    run_dir = 'exp_log/dual_ld/' + args.dataset + '/' + name_with_datetime(args.run_name+'_'+args.data_perc)
     os.makedirs(run_dir, exist_ok=True)
     
     log_file_name = os.path.join(run_dir, f"logs_{timesnow.now().strftime('%d_%m_%Y_%H_%M_%S')}.log")
@@ -86,7 +84,7 @@ if __name__ == '__main__':
     logger.debug("=" * 45)
     logger.debug(args)
     args.num_cluster='6'
-    args.warmup = int(args.epochs*0.5)
+    # args.warmup = int(args.epochs*0.5)
     print('Loading data... ', end='')
     if args.loader == 'UCR':
         task_type = 'classification'

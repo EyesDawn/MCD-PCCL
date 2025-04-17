@@ -48,3 +48,5 @@ def temporal_contrastive_loss(z1, z2):
     t = torch.arange(T, device=z1.device)
     loss = (logits[:, t, T + t - 1].mean() + logits[:, T + t, t].mean()) / 2
     return loss
+
+

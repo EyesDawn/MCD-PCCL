@@ -123,7 +123,7 @@ class TS2Vec:
                 
                 out1 = self._net(take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft))
                 out1 = out1[:, -crop_l:]
-                
+                #print(out1.shape,crop_l,batch[0].shape)
                 out2 = self._net(take_per_row(x, crop_offset + crop_left, crop_eright - crop_left))
                 out2 = out2[:, :crop_l]
                 
@@ -150,8 +150,8 @@ class TS2Vec:
             
             cum_loss /= n_epoch_iters
             loss_log.append(cum_loss)
-            if verbose:
-                print(f"Epoch #{self.n_epochs}: loss={cum_loss}")
+            # if verbose:
+            #     print(f"Epoch #{self.n_epochs}: loss={cum_loss}")
             if logger:
                 logger.debug(f"Epoch #{self.n_epochs}: loss={cum_loss}")
             self.n_epochs += 1
@@ -229,7 +229,7 @@ class TS2Vec:
         org_training = self.net.training
         self.net.eval()
         
-        dataset = TensorDataset(torch.from_numpy(data).to(torch.float))
+        dataset = TensorDataset(data.to(torch.float))
         loader = DataLoader(dataset, batch_size=batch_size)
         
         with torch.no_grad():

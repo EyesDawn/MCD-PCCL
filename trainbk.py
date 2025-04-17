@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--repr-dims', type=int, default=320, help='The representation dimension (defaults to 320)')
     parser.add_argument('--max-train-length', type=int, default=3000, help='For sequence with a length greater than <max_train_length>, it would be cropped into some sequences, each of which has a length less than <max_train_length> (defaults to 3000)')
     parser.add_argument('--iters', type=int, default=None, help='The number of iterations')
-    parser.add_argument('--epochs', type=int, default=None, help='The number of epochs')
+    parser.add_argument('--epochs', type=int, default=40, help='The number of epochs')
     parser.add_argument('--save-every', type=int, default=None, help='Save the checkpoint every <save_every> iterations/epochs')
     parser.add_argument('--seed', type=int, default=None, help='The random seed')
     parser.add_argument('--max-threads', type=int, default=None, help='The maximum allowed number of threads used by this process')
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     
     device = init_dl_program(args.gpu, seed=args.seed, max_threads=args.max_threads)
 
-    run_dir = 'training/ts2ver/' + args.dataset + '/' + name_with_datetime(args.run_name)
+    run_dir = 'Civil/show/' + args.dataset + '/' + name_with_datetime(args.run_name+'_'+args.data_perc)
     os.makedirs(run_dir, exist_ok=True)
     
     log_file_name = os.path.join(run_dir, f"logs_{timesnow.now().strftime('%d_%m_%Y_%H_%M_%S')}.log")
@@ -78,17 +78,19 @@ if __name__ == '__main__':
     logger.debug("=" * 45)
     logger.debug(f'Dataset: {args.dataset}')
     logger.debug(f'Mode:    {args.run_name}')
+    logger.debug(f'Data Percent:    {args.data_perc}')
     logger.debug("=" * 45)
     logger.debug(args)
 
     print('Loading data... ', end='')
     if args.loader == 'UCR':
         task_type = 'classification'
-        train_data, train_labels, test_data, test_labels = datautils.load_UCR(args.dataset)
-        
+        #train_data, train_labels, test_data, test_labels = datautils.load_UCR(args.dataset)
+        train_data, train_labels, test_data, test_labels = datautils.load_HEI_fft(args.dataset,dataset_root="/workspace/CA-TCC/data/UCR")
     elif args.loader == 'UEA':
         task_type = 'classification'
-        train_data, train_labels, test_data, test_labels = datautils.load_UEA(args.dataset)
+        train_data, train_labels, test_data, test_labels = datautils.load_HEI_fft(args.dataset,dataset_root="/workspace/CA-TCC/data/UEA")
+        # train_data, train_labels, test_data, test_labels = datautils.load_UEA(args.dataset)
         
     elif args.loader in ['HAR','Epilepsy','ISRUC']:
         task_type = 'classification'
@@ -126,7 +128,8 @@ if __name__ == '__main__':
         
     else:
         raise ValueError(f"Unknown loader {args.loader}.")
-        
+    # train_data = train_data[0].numpy()    
+    # test_data = test_data[0].numpy()      
     print(train_data.shape)   
     if args.irregular > 0:
         if task_type == 'classification':
@@ -177,8 +180,16 @@ if __name__ == '__main__':
 
     if args.eval:
         if task_type == 'classification':
-            train_data, train_labels, test_data, test_labels = datautils.load_HEI(args.dataset,args.data_perc)
-            
+            if args.loader == 'UCR':
+                train_data, train_labels, test_data, test_labels = datautils.load_HEI_fft(args.dataset,args.data_perc,dataset_root="/workspace/CA-TCC/data/UCR")
+                
+            elif args.loader == 'UEA':
+                train_data, train_labels, test_data, test_labels = datautils.load_HEI_fft(args.dataset,args.data_perc,dataset_root="/workspace/CA-TCC/data/UEA")
+                
+            elif args.loader in ['HAR','Epilepsy','ISRUC']:
+                train_data, train_labels, test_data, test_labels = datautils.load_HEI_fft(args.dataset,args.data_perc)
+            train_data = train_data[0]    
+            test_data = test_data[0]
             out, eval_res = tasks.eval_classification(model, train_data, train_labels, test_data, test_labels, eval_protocol='linear')
         elif task_type == 'forecasting':
             out, eval_res = tasks.eval_forecasting(model, data, train_slice, valid_slice, test_slice, scaler, pred_lens, n_covariate_cols)
