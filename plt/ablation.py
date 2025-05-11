@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 export_type = "png"
-title_size = 36
-label_aixs_size = 28
+title_size = 30
+label_aixs_size = 20
 # 数据
 labels = ['HC+CoT', 'TSD+HC', 'TSD+CoT', 'TSD+HC+CoT']
 roadbank = [95.28, 97.01, 94.8, 98.78]
@@ -15,7 +15,7 @@ plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
 fig, ax = plt.subplots(figsize=(10,6))
 
 # 绘制柱状图
-rects1 = ax.bar(x - width/2, roadbank, width, label='RoadBank')
+rects1 = ax.bar(x - width/2, roadbank, width, label='Transition')
 rects2 = ax.bar(x + width/2, bridge, width, label='Bridge')
 
 # 添加一些文本标签
@@ -42,4 +42,4 @@ def autolabel(rects):
 fig.tight_layout()
 
 plt.show()
-plt.savefig(f'ablation.{export_type}',dpi=600,format=export_type)
+plt.savefig(f'ablation1.{export_type}',dpi=600,format=export_type)
